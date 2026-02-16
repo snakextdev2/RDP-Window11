@@ -1,0 +1,79 @@
+name: 🚀 LINUX VPS SERVER (Terminal Only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: '🕐 Usage Duration'
+        required: false
+        default: '5h40m'
+        type: choice
+        options:
+        - '1h'
+        - '3h' 
+        - '5h40m'
+
+jobs:
+  Linux-VPS-Setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    
+    steps:
+      - name: 🎯 SYSTEM STARTUP
+        run: |
+          echo -e "\033[1;33m🤖 AI STV LINUX VPS (CLI)\033[0m"
+          echo -e "\033[1;32m⚡ Powered by AI STV\033[0m"
+          echo -e "\033[1;35m🕒 Duration: ${{ github.event.inputs.duration }}\033[0m"
+          echo -e "\n✅ System is ready!"
+
+      - name: 👤 CREATE ADMIN ACCOUNT
+        run: |
+          # Generar contraseña aleatoria
+          PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')
+          
+          # Crear usuario con privilegios sudo
+          sudo useradd -m -s /bin/bash AISTV-ADMIN
+          echo "AISTV-ADMIN:$PASSWORD" | sudo chpasswd
+          sudo usermod -aG sudo AISTV-ADMIN
+          
+          # Guardar datos para el resumen final
+          echo "VPS_USER=AISTV-ADMIN" >> $GITHUB_ENV
+          echo "VPS_PASS=$PASSWORD" >> $GITHUB_ENV
+          echo "$PASSWORD" > /tmp/vps_password.txt
+
+      - name: 🌐 SETUP TAILSCALE
+        env:
+          TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
+        run: |
+          # Instalar y conectar Tailscale
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=ai-linux-vps-${{ github.run_id }}
+          
+          IP=$(tailscale ip -4)
+          echo "TAILSCALE_IP=$IP" >> $GITHUB_ENV
+
+      - name: 🎉 CONNECTION INFORMATION
+        run: |
+          PASSWORD=$(cat /tmp/vps_password.txt)
+          echo "┌───────────────────────────────────────────┐"
+          echo "│           🎉 VPS SETUP COMPLETE!          │"
+          echo "├───────────────────────────────────────────┤"
+          echo "│ 🌐 SSH Address: $TAILSCALE_IP"
+          echo "│ 👤 Username:    AISTV-ADMIN"
+          echo "│ 🔐 Password:    $PASSWORD"
+          echo "│ 📍 SSH Port:    22                        │"
+          echo "├───────────────────────────────────────────┤"
+          echo "│ 💡 Instructions:                          │"
+          echo "│   1. Open your terminal (CMD/PowerShell)  │"
+          echo "│   2. Type: ssh AISTV-ADMIN@$TAILSCALE_IP  │"
+          echo "│   3. Enter the password above             │"
+          echo "└───────────────────────────────────────────┘"
+
+      - name: ⏳ MAINTAIN SESSION
+        run: |
+          case "${{ github.event.inputs.duration }}" in
+            "1h") sleep 3600 ;;
+            "3h") sleep 10800 ;;
+            "5h40m") sleep 20400 ;;
+          esac
+          echo "🎯 TIME EXPIRED!"
